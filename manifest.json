@@ -1,0 +1,17 @@
+{
+  "name": "CodeCenturion: HTML Validator",
+  "version": "1.0",
+  "description": "Validates sites as you visit them.",
+  "background_page": "background.html",
+  "options_page": "options.html",
+  "icons": {
+    "128": "icon_128x128.png"
+  },
+  "browser_action": {
+    "default_icon": "icon_128x128.png"
+  },
+  "permissions": [
+    "http://*/",
+    "https://*/"
+  ]
+}

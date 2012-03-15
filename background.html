@@ -1,0 +1,32 @@
+<script>
+  var sourceCodeRequest = new XMLHttpRequest();
+  var sourceCode, validationResults;
+
+  var validateSourceCode = function(sourceCode) {
+    var validationRequest = new XMLHttpRequest();
+    var w3cRequestData    = new FormData();
+
+    w3cRequestData.append('fragment', sourceCode);
+    w3cRequestData.append('output', 'json');
+
+    validationRequest.open('POST', 'http://validator.w3.org/check', true);
+    validationRequest.onreadystatechange = function() {
+      if (validationRequest.readyState == 4) {
+        validationResults = JSON.parse(validationRequest.responseText);
+        chrome.browserAction.setBadgeText({
+          'text': validationResults.messages.length + ''
+        });
+      }
+    };
+    validationRequest.send(w3cRequestData);
+  }
+
+  sourceCodeRequest.open('GET', 'https://www.google.com/', true);
+  sourceCodeRequest.onreadystatechange = function() {
+    if (sourceCodeRequest.readyState == 4) {
+      sourceCode = sourceCodeRequest.responseText;
+      validateSourceCode(sourceCode);
+    }
+  };
+  sourceCodeRequest.send();
+</script>

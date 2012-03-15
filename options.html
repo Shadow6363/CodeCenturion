@@ -1,0 +1,169 @@
+<html>
+<head>
+  <title>ChronoStore</title>
+  <style type="text/css" media="screen">
+    html, body {
+      background: #eee;
+    }
+    body {
+      font-family: 'Helvetica', 'Arial', sans-serif;
+    }
+
+    #container {
+      min-height: 300px;
+      margin: 30px auto;
+      padding: 15px 20px;
+      background: white;
+      width: 720px;
+      border: 1px solid #ddd;
+      overflow: hidden;
+/*      box-shadow: 0 0 10px rgba(0,0,0,0.2);*/
+    }
+    h2 { margin: 0; }
+    #saved_links { width: 100%; border-collapse:collapse;border-spacing:0;}
+    #saved_links tr:nth-child(2n) { background: #fafafa; }
+    #saved_links td { padding: 3px; }
+    #saved_links .cell_clear a { text-decoration:none; font-size: 131%; font-weight: bold; color: #888 }
+    #saved_links .cell_clear a:hover { color: #540F0C }
+
+    #saved_links #cell_date_title { font-size: 10px; }
+    #saved_links .cell_date { width: 150px; font-size: 93%; color: #777}
+
+    #exterminate, #resuscitate { margin-top: 10px; float: right; display: block; font-size: 93%; padding: 8px 16px}
+    .button{text-decoration:none;display:block;color:#555;border:1px solid #ddd;text-align:center;cursor:pointer;padding:5px 10px;-moz-border-radius:3px;-webkit-border-radius:3px;border-radius:3px;background:#ffffff;background:-moz-linear-gradient(top, #ffffff 0%, #eeeeee 100%);background:-webkit-linear-gradient(top, #ffffff 0%, #eeeeee 100%);background:-o-linear-gradient(top, #ffffff 0%, #eeeeee 100%);background:-ms-linear-gradient(top, #ffffff 0%, #eeeeee 100%);background:linear-gradient(top, #ffffff 0%, #eeeeee 100%);-webkit-transition:all 100ms ease-in-out;-moz-transition:all 100ms ease-in-out;-o-transition:all 100ms ease-in-out;transition:all 100ms ease-in-out;}
+    .button:hover{color:black;border-color:#999;}
+  </style>
+  <link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.8.2/css/jquery.dataTables.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.0/jquery.dataTables.js"></script>
+</head>
+<script type="text/javascript">
+// Array Remove - By John Resig (MIT Licensed)
+Array.prototype.remove = function(from, to) {
+  var rest = this.slice((to || from) + 1 || this.length);
+  this.length = from < 0 ? this.length + from : from;
+  return this.push.apply(this, rest);
+};
+
+// http://sajjadhossain.com/2008/10/31/javascript-string-trimming-and-padding/
+String.prototype.lpad = function(padString, length) {
+	var str = this;
+    while (str.length < length)
+        str = padString + str;
+    return str;
+}
+
+// Restores select box state to saved value from localStorage.
+function restore_options() {
+  var tabs  = JSON.parse(localStorage['chronostore_tabs']);
+  if (!tabs || tabs.length == 0) {
+    return;
+  }
+
+  for (var i = 0; i < tabs.length; i++) {
+    var tab = tabs[i];
+
+    var tr = document.createElement('tr');
+    var td_img = document.createElement('td');
+    var td_title = document.createElement('td');
+    var td_date = document.createElement('td');
+    var td_clear = document.createElement('td');
+
+    if (tab.favIconUrl) {
+      var img = document.createElement('img');
+      img.setAttribute('src', tab.favIconUrl);
+      img.setAttribute('width', 16);
+      img.setAttribute('height', 16);
+      td_img.appendChild(img);
+    }
+
+    var a = document.createElement('a');
+    a.setAttribute('onclick', 'resuscitate(' + i + '); return false;');
+    a.setAttribute('href', '');
+    var link = document.createTextNode(tab.title);
+    a.appendChild(link);
+
+    var b = document.createElement('a');
+    b.setAttribute('onclick', 'exterminate(' + i + '); return false;');
+    b.setAttribute('href', '');
+    var t = document.createTextNode("\u00D7");
+    b.appendChild(t);
+
+    var d = new Date(tab.date * 1);
+    var month = d.getMonth() == 11 ? 12 : (d.getMonth() + 1 % 12);
+    var hours = d.getHours() == 0  ? 12 : (d.getHours() % 12);
+    var date = document.createTextNode(
+      month +"/"+d.getDate()+" "+ hours +':'+(d.getMinutes()+'').lpad('0', 2)+(d.getHours() > 11?'pm':'am')
+    );
+
+    td_title.appendChild(a);
+    td_date.appendChild(date);
+    td_date.setAttribute('class', 'cell_date');
+    td_clear.appendChild(b)
+    td_clear.setAttribute('class','cell_clear');
+    tr.appendChild(td_img);
+    tr.appendChild(td_title);
+    tr.appendChild(td_date);
+    tr.appendChild(td_clear);
+
+    var table = document.getElementById('saved_tabs');
+    table.appendChild(tr);
+  } $('#saved_links').dataTable({
+      'aaSorting': [[1, 'asc'], [2, 'asc']],
+      'bFilter': false,
+      'bInfo': false,
+      'bPaginate': false
+  });
+}
+
+function exterminate(id) {
+  var tabs  = JSON.parse(localStorage['chronostore_tabs']);
+  var tab = {};
+
+  if (tabs[id]) { tab = tabs[id]; tabs.remove(id); }
+  chrome.browserAction.setBadgeText({ text: (tabs.length > 0) ? tabs.length + '' : '' });
+
+  localStorage.setItem('chronostore_tabs', JSON.stringify(tabs));
+  window.location.reload(); return tab;
+}
+
+function resuscitate(id) {
+  chrome.tabs.create({ 'active': false, 'url': exterminate(id).url });
+}
+
+function exterminateAll() {
+  if(confirm('Are you sure you want to exterminate all tabs?')) {
+    localStorage.setItem('chronostore_tabs', JSON.stringify([]));
+    chrome.browserAction.setBadgeText({ text: '' });
+    window.location.reload();
+  }
+}
+
+function resuscitateAll() {
+  alert('Not Implemented Yet')
+}
+</script>
+
+<body onload="restore_options()">
+<div id='container'>
+  <h2>Temporally Trapped Tabs</h2>
+  <h4>ChronoStore: Temporal Tab Trap is a great way to manage tab overload!</h4>
+  <p>You can click the icon in the toolbar to trap a page.</p><hr>
+  <table id='saved_links'>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Title</th>
+        <th id='cell_date_title' class='cell_date' style='text-align: left;'>Trapped at&hellip;</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id='saved_tabs'>
+    </tbody>
+  </table>
+
+  <a href='' id='resuscitate' class='button' onclick='resuscitateAll();return false'>Resuscitate All</a>
+  <a href='' id='exterminate' class='button' onclick='exterminateAll();return false'>Exterminate All</a>
+  </div>
+</body>
+</html>
