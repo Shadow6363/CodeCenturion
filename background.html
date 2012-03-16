@@ -1,8 +1,7 @@
 <script>
-  var sourceCodeRequest = new XMLHttpRequest();
-  var sourceCode, validationResults;
+  var activeTab = tabs = {};
 
-  var validateSourceCode = function(sourceCode) {
+  var validateSourceCode = function(tab, sourceCode) {
     var validationRequest = new XMLHttpRequest();
     var w3cRequestData    = new FormData();
 
@@ -12,21 +11,30 @@
     validationRequest.open('POST', 'http://validator.w3.org/check', true);
     validationRequest.onreadystatechange = function() {
       if (validationRequest.readyState == 4) {
-        validationResults = JSON.parse(validationRequest.responseText);
+        tab.validationResults = JSON.parse(validationRequest.responseText);
         chrome.browserAction.setBadgeText({
-          'text': validationResults.messages.length + ''
-        });
+          'text': tab.validationResults.messages.length + '',
+          'tabId': tab.id
+        }); tabs[tab.id] = tab;
       }
-    };
-    validationRequest.send(w3cRequestData);
+    }; validationRequest.send(w3cRequestData);
   }
 
-  sourceCodeRequest.open('GET', 'https://www.google.com/', true);
-  sourceCodeRequest.onreadystatechange = function() {
-    if (sourceCodeRequest.readyState == 4) {
-      sourceCode = sourceCodeRequest.responseText;
-      validateSourceCode(sourceCode);
-    }
-  };
-  sourceCodeRequest.send();
+  var downloadSourceCode = function(tab) {
+    var sourceCodeRequest = new XMLHttpRequest();
+
+    sourceCodeRequest.open('GET', tab.url, true);
+    sourceCodeRequest.onreadystatechange = function() {
+      if (sourceCodeRequest.readyState == 4) {
+        validateSourceCode(tab, sourceCodeRequest.responseText);
+      }
+    }; sourceCodeRequest.send();
+  }
+
+  chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+    if(changeInfo.status == 'complete') { downloadSourceCode(tab); }
+  });
+  chrome.tabs.onActiveChanged.addListener(function(tabId, selectInfo) {
+    activeTab = tabs[tabId];
+  });
 </script>

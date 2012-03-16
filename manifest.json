@@ -8,10 +8,12 @@
     "128": "icon_128x128.png"
   },
   "browser_action": {
-    "default_icon": "icon_128x128.png"
+    "default_icon": "icon_128x128.png",
+    "default_popup": "popup.html"
   },
   "permissions": [
     "http://*/",
-    "https://*/"
+    "https://*/",
+    "tabs"
   ]
 }

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Popup Test</title>
+  </head>
+  <body>
+    <div id="validation_results" style="width: 256px;"></div>
+    <script>
+      var activeTab = chrome.extension.getBackgroundPage().activeTab;
+      var validationResultsDiv = document.getElementById('validation_results');
+      var validationResults = '';
+      for (var i = 0; i < activeTab.validationResults.messages.length; i++) {
+        validationResults = validationResults + activeTab.validationResults.messages[i].explanation;
+      } validationResultsDiv.innerHTML = validationResults;
+    </script>
+  </body>
+</html>
